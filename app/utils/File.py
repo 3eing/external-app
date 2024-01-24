@@ -6,9 +6,6 @@ import os
 import json
 import zipfile
 from pathlib import Path
-from docxtpl import DocxTemplate
-
-from app.utils.eepower_utils import parse_excel_sheet
 
 
 def get_uploads_files(upload_dir=r'.\uploads'):
@@ -20,118 +17,62 @@ def get_uploads_files(upload_dir=r'.\uploads'):
         return []
 
 
+def get_validated_files(files):
+    for v in files.values():
+        if not v:
+            return False
+    return True
+
+
 def purge_file(dir_name=Path(r'.\uploads')):
     if get_uploads_files(dir_name) != []:
         for file in get_uploads_files(dir_name):
             file.unlink()
 
 
-def validate_file_epow(file):
+def validate_file_dg(file, type):
     """
 
     :param file: Path (pathlib) to the file to validate
+    :param type: what file it is (network_file, source_file, open_file, limit_file)
     :return: The type of file it is for the study, None is not valitated
     """
-    file_names_patern = {
-        "cc": "(?i)(LV|LM.Momentary)|(30.Cycle)",
-        "af": "(?i)Arc.Flash",
-        "ed": "(?i)Equipment.Duty",
-        "tcc": "(?i)TCC.coordination"
-    }
-    col30 = {'Bus kV', 'Sym Amps'}
-    col1 = {"Bus kV", "Sym Amps", "X/R Ratio", "Mult Factor", "Asym Amps", "Equip Type", "Duty Amps"}
-    af_col = {"Arc Fault Bus Name",
-              "Worst Case Scenario",
-              "Arc Fault Bus kV",
-              "Fault Type",
-              "Upstream Trip Device Name",
-              "Bus Bolted Fault (kA)",
-              "Bus Arc Fault (kA)",
-              "Trip Time (sec)",
-              "Arc Time (sec)",
-              "Limited Approach Boundary (m)",
-              "Restricted Approach Boundary (m)",
-              "Working Distance (m)",
-              "Incident Energy\n(cal/cm2)"}
-    ed_col = {
-        "Equipment\nName",
-        "Worst Case Scenario",
-        "Fault\nType",
-        "Bus Base\nkV",
-        "Manufacturer",
-        "Style",
-        "Test\nStandard",
-        "1/2 Cycle\nRating\n(kA)",
-        "1/2 Cycle\nDuty\n(kA)",
-        "1/2 Cycle\nDuty\n(%)",
-        "Comments"
-    }
-    tcc_col = {
-        "Fuse",
-        "SST",
-        "Thermal Magnetic Breaker"
+    cols = {
+        "network_file": {
+            "section",
+            "start",
+            "end"
+        },
+        "source_file": {"source"},
+        "open_file": {"section"},
+        "limit_file": {
+            "node",
+            "limit",
+            "type",
+            "x",
+            "y",
+            "dg",
+            "c"
+        },
     }
 
-    if re.match(file_names_patern['cc'], file.name):
-        try:
-            df = pd.DataFrame(pd.read_csv(file, skiprows=1))
-        except:
-            try:
-                df = pd.DataFrame(pd.read_excel(file, skiprows=7, engine='openpyxl'))
-            except openpyxl.utils.exceptions.InvalidFileException as notXL:
-                return None
-
-        if col1.issubset(df.columns.to_list()) or col30.issubset(df.columns.to_list()):
-            return "CC"
-        else:
-            missing_col = col30 + col1 - set(df.columns.to_list())
-            raise ValueError(
-                "Les colonnes {0} du fichier '{1}' semblent être manquantes ou mal écrite dans les fichiers "
-                "fournis".format(missing_col, file)
-            )
-
-    if re.match(file_names_patern['af'], file.name):
-        try:
-            df = pd.DataFrame(pd.read_excel(file, engine='openpyxl'))
-        except openpyxl.utils.exceptions.InvalidFileException as notXL:
-            return None   
-        if af_col.issubset(df.columns.to_list()):
-            return "AF"
-        else:
-            missing_col = af_col - set(df.columns.to_list())
-            raise ValueError(
-                "Les colonnes {0} du fichier '{1}' semblent être manquantes ou mal écrite dans les fichiers "
-                "fournis".format(missing_col, file)
-            )
-        
-    if re.match(file_names_patern['ed'],  file.name):
+    try:
+        df = pd.DataFrame(pd.read_csv(file))
+    except:
         try:
             df = pd.DataFrame(pd.read_excel(file, engine='openpyxl'))
         except openpyxl.utils.exceptions.InvalidFileException as notXL:
             return None
-        if ed_col.issubset(df.columns.to_list()):
-            return "ED"
-        else:
-            missing_col = ed_col - set(df.columns.to_list())
-            raise ValueError(
-                "Les colonnes {0} du fichier '{1}' semblent être manquantes ou mal écrite dans les fichiers "
-                "fournis".format(missing_col, file.name)
-            )
 
-    if re.match(file_names_patern['tcc'], file.name):
-        try:
-            df_tcc, _ = parse_excel_sheet(file, header=[0, 1])
-            df = df_tcc[0]
-            if set.intersection(tcc_col, df.columns.to_list()[0]) != set():
-                return "TCC"
-            else:
-                missing_col = ("infos manquantes")
-                raise ValueError(
-                    "Les colonnes {0} du fichier '{1}' semblent être manquantes ou mal écrite dans les fichiers "
-                    "fournis".format(missing_col, file.name)
-                )
-        except openpyxl.utils.exceptions.InvalidFileException:
-            return None
+    if cols[type].issubset(df.columns.to_list()) or cols[type].issubset(df.columns.to_list()):
+        return type
+    else:
+        missing_col = cols[type] - set(df.columns.to_list())
+        raise ValueError(
+            "Les colonnes {0} du fichier '{1}' semblent être manquantes ou mal écrite dans les fichiers "
+            "fournis".format(missing_col, file.name)
+        )
+
 
 
 def full_paths(upload_dir):
@@ -223,22 +164,3 @@ def save_items_as_json(data, path, filename="data.json"):
     return filename, filepath
 
 
-def render_document(template_path, doc_path, projects, persons=None):
-    """
-    Generate a docx file from a template
-    :param template_path: path to the template file
-    :type template_path: str
-    :param doc_path: filepath where to save the document
-    :type doc_path: str
-    :param projects: all the projects to include in the document
-    :type projects: list[dict]
-    :return: filename of the document
-    :rtype: str
-    """
-
-    doc = DocxTemplate(template_path)
-    context = {'projects': projects, 'persons': persons}
-    doc.render(context)
-    doc.save(doc_path)
-
-    return doc_path.split('\\')[-1]

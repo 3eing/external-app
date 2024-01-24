@@ -1,0 +1,123 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <link rel="stylesheet" href="static/css/style.css/">
+        <title>Allocation DG</title>
+    </head>
+
+    <body>
+        {% include "header.html" %}
+
+        <div id="bloc_page">
+
+            {% include "nav_barre.html" %}
+
+            <div id="contenu">
+
+                <section id="intro">
+                    <p>
+                        Bienvenu dans cet outil d'allocation de génératices diesel <br/>
+
+                        Pour l'utiliser, vous devez téléverser les fichiers csv :<br/>
+                        <code>
+                            - path_network<br/>
+                            - path_source<br/>
+                            - path_open<br/>
+                            - dg_csv<br/>
+                        </code><br>
+
+
+
+                    </p>
+
+                </section>
+
+                <fieldset>
+                    <div id="file_selector">
+                            <form method="POST" action="" enctype="multipart/form-data">
+                                <label for="network_file">Fichier "network" :</label>
+                                <p><input type="file" id="network_file" name="network_file" accept=".csv,.xlsx"></p>
+
+                                <label for="source_file">Fichier "source" :</label>
+                                <p><input type="file" id="source_file" name="source_file" accept=".csv,.xlsx"></p>
+
+                                <label for="open_file">Fichier "open" :</label>
+                                <p><input type="file" id="open_file" name="open_file" accept=".csv,.xlsx"></p>
+
+                                <label for="limit_file">Fichier "limit" :</label>
+                                <p><input type="file" id="limit_file" name="limit_file" accept=".csv,.xlsx"></p>
+
+                                <p><input type="submit" value="Soumettre"></p>
+                                <input type="hidden" name="btn_id" value="soumettre_fichier">
+                            </form>
+
+
+                    <div id="message">
+                        {% with messages = get_flashed_messages() %}
+                            {% if messages %}
+                                <ul class=flashes>
+                                    {% for message in messages %}
+                                        <em>{{ message }}</em>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        {% endwith %}
+                    </div>
+
+                    </div>
+                </fieldset>
+
+                <div class="container", id="files">
+                    {% if uploaded_files == [] %}
+                        Aucun fichier téléversé
+                    {% else %}
+                        Les fichiers téléversés sont les suivants :
+                        <ul>
+                            {% for file in uploaded_files %}
+                                <li>{{ file.name }} </li>
+                            {% endfor %}
+                        </ul>
+                        <div id="purge">
+                            <form method="POST">
+                                <input type="submit" value="Purger les fichiers">
+                                <input type="hidden" name="btn_id" value="purger">
+                            </form>
+
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div id="bouton suivant">
+                    {% if validated_files %}
+                        <form method="POST" action="">
+                            <p><input type="submit" value="Analyser"></p>
+                            <input type="hidden" name="btn_id" value="analyser">
+                        </form>
+                    {% endif %}
+                </div>
+
+                {% if file_ready == 1 %}
+                    <div id="telecharger">
+
+                            Fichier prêt !
+                            <form method="POST" action="">
+                                <p><input type="submit" value="Télécharger"></p>
+                                <input type="hidden" name="btn_id" value="telecharger">
+                            </form>
+                    </div>
+
+                    <div id="terminer">
+                            <form method="POST" action="">
+                                <p><input type="submit" value="Terminer"></p>
+                                <input type="hidden" name="btn_id" value="terminer">
+                            </form>
+                </div>
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </body>
+</html>
