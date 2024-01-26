@@ -1,9 +1,9 @@
 from app import app
 
 
-intern_app = app.app
+external_app = app.app
 
 
 if __name__ == "__main__":
-    intern_app.run()
+    external_app.run()
 

@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 from collections import deque
-import csv
 
 
 def section_sequence(network_df, source_node):
@@ -96,68 +95,36 @@ def set_downstream_dict(node_list, network_df):
     return downstream_dict
 
 
-def allocate_dg(dg_df, downstream_dict, network_df):
+def dict_to_table(node_list, downstream_dict):
 
-    # Merge the dg_df to the network_df
-    network_df = pd.merge(network_df, dg_df, left_on='further_node', right_on='node', how='left')
+    downstream_nodes_table = pd.DataFrame(0, index=node_list, columns=node_list)
 
-    # Initiate new columns for the allocation and identification of limiting node.
-    network_df['new_dg'] = network_df['dg'].values
-    network_df['temp_dg'] = 0.0
-    network_df['limiting_node'] = network_df['further_node'].values
+    for node, dowstream_nodes in downstream_dict.items():
+        for dn in dowstream_nodes:
+            if dn in downstream_nodes_table.index:
+                downstream_nodes_table.at[dn, node] = 1
 
-    # Sort the network_data DataFrame according to the sequence number (largest to smallest)
-    network_df.sort_values(by='sequence', ascending=False, inplace=True)
-
-    # Iterate over network_data rows
-    for idx, row in network_df.iterrows():
-
-        # Set the further node to a variable
-        f_node = row['further_node']
-
-        # Get DG limit at the further_node
-        limit_at_f_node = row['limit']
-
-        downstream_nodes = downstream_dict[f_node]
-        downstream_mask = network_df['further_node'].isin(downstream_nodes)
-        downstream_dg_sum = network_df.loc[downstream_mask, 'dg'].sum()
-
-        if downstream_dg_sum == 0:
-            continue
-
-        ajus_ratio = limit_at_f_node / downstream_dg_sum
-
-        network_df.loc[downstream_mask, 'temp_dg'] = ajus_ratio * network_df.loc[downstream_mask, 'dg']
-
-        dg_to_reduce_mask = network_df['temp_dg'] < network_df['new_dg']
-
-        downstream_to_reduce_mask = downstream_mask & dg_to_reduce_mask
-
-        network_df.loc[downstream_to_reduce_mask, 'new_dg'] = network_df.loc[downstream_to_reduce_mask, 'temp_dg']
-        network_df.loc[downstream_to_reduce_mask, 'limiting_node'] = f_node
-
-    return network_df
+    return downstream_nodes_table
 
 
-def run_dg_analysis(files, path_to_save):
+def run_nm_analysis(files, path_to_save):
     """
     :param files: Network, Source, limit and open file
     :type files: dict of Path
     :param path_to_save: Path to the generated files directory
     :type files: Path
     """
+    path_to_save = path_to_save/'node_map.csv'
+
     network_df = pd.read_csv(files["network_file"])
-    limit_df = pd.read_csv(files["limit_file"])
     source_nodes = pd.read_csv(files["source_file"])['source'].tolist()
     open_sections = pd.read_csv(files["open_file"])['section'].tolist()
-
-    path_to_save = path_to_save/'allocated_dg.csv'
 
     network_df = network_df[~network_df['section'].isin(open_sections)]
 
     # Set a list of the nodes
     selected_columns = network_df[['start', 'end']]  # Select the desired columns
-    node_list = selected_columns.values.flatten().tolist()  # Flatten the DataFrame and convert to a list
+    node_list = selected_columns.values.flatten().tolist() # Flatten the DataFrame and convert to a list
     node_list = list(set(node_list))
 
     s_list = []
@@ -175,7 +142,7 @@ def run_dg_analysis(files, path_to_save):
     for idx in range(size):
 
         for s, fn in zip(s_list, fn_list):
-            if s[idx] > 0:
+            if s[idx] > 0 :
                 s_val = s[idx]
                 fn_val = fn[idx]
                 break
@@ -183,16 +150,14 @@ def run_dg_analysis(files, path_to_save):
         sequence.append(s_val)
         further_node.append(fn_val)
 
-    # Add "sequence" and "further_node" columns to the network_data DataFrame
     network_df['sequence'] = sequence
     network_df['further_node'] = further_node
 
     downstream_dict = set_downstream_dict(node_list=node_list, network_df=network_df)
-    network_df = allocate_dg(dg_df=limit_df, downstream_dict=downstream_dict, network_df=network_df)
 
-    network_df = network_df.drop(columns=['dg', 'c', 'temp_dg'])
-
-    network_df.to_csv(path_to_save)
+    downstream_nodes_table = dict_to_table(node_list=node_list, downstream_dict=downstream_dict)
+    downstream_nodes_table.to_csv(path_to_save)
 
     return path_to_save
+
 

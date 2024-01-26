@@ -11,6 +11,7 @@ from .utils.File import get_uploads_files, purge_file, full_paths, \
     save_items_as_json, validate_file_dg, get_validated_files
 
 from .utils.dg_allocation_tool import run_dg_analysis
+from .utils.node_map_tool import run_nm_analysis
 
 app = Flask(__name__)
 app.secret_key = secrets.token_bytes()
@@ -19,9 +20,10 @@ app.config['ROOT_DIR'] = pathlib.Path(__file__)
 app.config['MAX_CONTENT_LENGTH'] = 3072 * 3072
 app.config['UPLOAD_EXTENSIONS'] = ['.csv', '.xlsx', '.xls']
 app.config['UPLOAD_PATH'] = create_dir('uploads')
-app.config['UPLOAD_PATH_DG'] = create_dir('uploads/dg_allocation')
+app.config['UPLOAD_PATH_ANALYSIS'] = create_dir('uploads/analysis')
+app.config['GENERATED_PATH_ANALYSIS'] = create_dir('generated/analysis')
 app.config['GENERATED_PATH'] = create_dir(r'generated')
-app.config['DG_FILES'] = {
+app.config['FILES'] = {
     "network_file": False,
     "source_file": False,
     "open_file": False,
@@ -36,11 +38,11 @@ def index():
     return render_template('accueil.html')
 
 
-@app.route('/dg_allocation', methods=['GET', 'POST'])
-def dg_allocation():
-    app_name ='dg_allocation'
-    uploaded_files = get_uploads_files(app.config['UPLOAD_PATH_DG'])
-    validated_files = get_validated_files(app.config['DG_FILES'])
+@app.route('/analysis', methods=['GET', 'POST'])
+def analysis():
+    app_name ='analysis'
+    uploaded_files = get_uploads_files(app.config['UPLOAD_PATH_ANALYSIS'])
+    validated_files = get_validated_files(app.config['FILES'])
     file_ready = False
     error_messages = []
 
@@ -54,38 +56,42 @@ def dg_allocation():
                     # valide si l'extension des fichiers est bonne
                     if file.suffix not in app.config['UPLOAD_EXTENSIONS']:
                         flash("Les fichiers reçus ne sont des fichiers .csv ou .xlsx", 'error')
-                    path_to_file = pathlib.Path(app.config['UPLOAD_PATH_DG']) / file
+                    path_to_file = pathlib.Path(app.config['UPLOAD_PATH_ANALYSIS']) / file
                     uploaded_file.save(path_to_file)
                     # valide en ouvrant les fichiers si le contenu est bon
                     try:
                         validate_file_dg(path_to_file, uploaded_file_name)
-                        app.config['DG_FILES'][uploaded_file_name] = path_to_file
+                        app.config['FILES'][uploaded_file_name] = path_to_file
                     except ValueError as e:
                         os.remove(path_to_file)
                         error_messages.append("{0}".format(e))
 
             flash("\n".join(error_messages), 'warning')
-            return redirect(url_for('dg_allocation'))
+            return redirect(url_for('analysis'))
 
         elif request.form['btn_id'] == 'purger' or request.form['btn_id'] == 'terminer':
             return redirect(url_for('purge', app_name=app_name))
 
         elif request.form['btn_id'] == 'analyser':
             try:
-                app.config['CURRENT_OUTPUT_FILE'] = run_dg_analysis(app.config['DG_FILES'],
-                                                                    app.config['GENERATED_PATH']/app_name).name
+                file_list = []
+                dg = run_dg_analysis(app.config['FILES'], pathlib.Path(app.config['GENERATED_PATH']/app_name))
+                nm = run_nm_analysis(app.config['FILES'], pathlib.Path(app.config['GENERATED_PATH']/app_name))
+                file_list.append(dg)
+                file_list.append(nm)
+                app.config['CURRENT_OUTPUT_FILE'] = zip_files(file_list, zip_file_name=app_name + '_result')
                 file_ready = True
             except Exception as e:
                 error_messages.append("{0}".format(e))
                 flash("\n".join(error_messages), 'error')
 
-            return render_template('dg_allocation.html', uploaded_files=uploaded_files, validated_files=validated_files,
+            return render_template('analysis.html', uploaded_files=uploaded_files, validated_files=validated_files,
                                    file_ready=file_ready)
 
         elif request.form['btn_id'] == 'telecharger':
             return redirect(url_for('download', app_name=app_name, filename=app.config['CURRENT_OUTPUT_FILE']))
 
-    return render_template('dg_allocation.html', uploaded_files=uploaded_files, validated_files=validated_files,
+    return render_template('analysis.html', uploaded_files=uploaded_files, validated_files=validated_files,
                            file_ready=file_ready)
 
 

@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" xmlns="http://www.w3.org/1999/html">
     <head>
         <meta charset="UTF-8">
         <link rel="stylesheet" href="static/css/style.css/">
@@ -17,16 +17,54 @@
 
                 <section id="intro">
                     <p>
-                        Bienvenu dans cet outil d'allocation de génératices diesel <br/>
+                        Bienvenu dans cet outil de répartition de générateurs <br/>
+                        Ce script Python permet d’obtenir la table des nœuds et la répartition des générateurs
+                        requise par le fichier Excel</br>
+                        </br>
+                        Pour chaque nœud du réseau, cette table indique les nœuds situés en aval</br>
+                        </br>
+                        Le réseau fourni ne doit pas être bouclé. <br/>
+                        Il est important de bien respecter les noms de fichiers et les entêtes de colonnes
+                        indiquées ci-dessous<br/>
+                        </br>
+                        Les fichiers à ajouter sont les suivants :<br/>
+                        </br>
 
-                        Pour l'utiliser, vous devez téléverser les fichiers csv :<br/>
-                        <code>
-                            - path_network<br/>
-                            - path_source<br/>
-                            - path_open<br/>
-                            - dg_csv<br/>
-                        </code><br>
+                        <details>
+                            <summary>network.csv : Table des sections du réseau avec les nœuds de départ et de fin correspondant.</summary>
+                                                        {% include "tab_network.html" %}<br/>
+                                </br>
+                                Où :<br/>
+                                •	section : Identifiant de la section<br/>
+                                •	start : Identifiant du nœud de départ de la section<br/>
+                                •	end : Identifiant du nœud de fin de la section<br/>
+                        </details>
 
+                        </br>
+                        <details>
+                            <summary>source.csv : Table des sections du réseau avec les nœuds de départ et de fin correspondant.</summary>
+                            {% include "tab_source.html" %}<br/>
+                        </details>
+
+                        <br/>
+                        <details>
+                            <summary>open.csv : Table des sections avec des sectionneurs ouverts.</summary>
+                            {% include "tab_open.html" %}
+
+                        </details>
+                        <br/>
+                        <details>
+                            <summary>limit.csv : Table des limites de capacité d’intégration.</summary>
+                            {% include "tab_limit.html" %}
+                                </br>
+                                Où :<br/>
+                                    •	node : Identifiant du nœud</br>
+                                    •	limit : Limite de capacité d’intégration du nœud</br>
+                                    •	type : Type de contrainte limitante</br>
+                                    •	x, y : coordonnées géographiques </br>
+                                    •	dg : Limite de capacité d’intégration aux emplacements avec des générateurs
+                            (supports BT ou poste MT/BT)</br>
+                        </details>
 
 
                     </p>
@@ -91,6 +129,7 @@
                 <div id="bouton suivant">
                     {% if validated_files %}
                         <form method="POST" action="">
+                            <p>L'analyse dure un certain temps, c'est normal. Ne pas recharger la page</p>
                             <p><input type="submit" value="Analyser"></p>
                             <input type="hidden" name="btn_id" value="analyser">
                         </form>
