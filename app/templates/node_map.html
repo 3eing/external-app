@@ -1,0 +1,147 @@
+﻿<!DOCTYPE html>
+<html lang="fr" xmlns="http://www.w3.org/1999/html">
+    <head>
+        <meta charset="UTF-8">
+        <link rel="stylesheet" href="static/css/style.css/">
+        <title>Node Map</title>
+    </head>
+
+    <body>
+        {% include "header.html" %}
+
+        <div id="bloc_page">
+
+            {% include "nav_barre.html" %}
+
+            <div id="contenu">
+
+                <section id="intro">
+                    <p>
+                        Bienvenu dans cet outil de répartition de générateurs <br/>
+                        Ce script Python permet d’obtenir la table des nœuds requise par le fichier Excel</br>
+                        </br>
+                        Pour chaque nœud du réseau, cette table indique les nœuds situés en aval</br>
+                        </br>
+                        Le réseau fourni ne doit pas être bouclé. <br/>
+                        Il est important de bien respecter les noms de fichiers et les entêtes de colonnes
+                        indiquées ci-dessous<br/>
+                        </br>
+                        Les fichiers à ajouter sont les suivants :<br/>
+                        </br>
+
+                        <details>
+                            <summary>network.csv : Table des sections du réseau avec les nœuds de départ et de fin correspondant.</summary>
+                                                        {% include "tab_network.html" %}<br/>
+                                </br>
+                                Où :<br/>
+                                •	section : Identifiant de la section<br/>
+                                •	start : Identifiant du nœud de départ de la section<br/>
+                                •	end : Identifiant du nœud de fin de la section<br/>
+                        </details>
+
+                        </br>
+                        <details>
+                            <summary>source.csv : Table des sections du réseau avec les nœuds de départ et de fin correspondant.</summary>
+                            {% include "tab_source.html" %}<br/>
+                        </details>
+
+                        <br/>
+                        <details>
+                            <summary>open.csv : Table des sections avec des sectionneurs ouverts.</summary>
+                            {% include "tab_open.html" %}
+
+                        </details>
+                        <br/>
+
+
+
+                    </p>
+
+                </section>
+
+                <fieldset>
+                    <div id="file_selector">
+                            <form method="POST" action="" enctype="multipart/form-data">
+                                <label for="network_file">Fichier "network" :</label>
+                                <p><input type="file" id="network_file" name="network_file" accept=".csv,.xlsx"></p>
+
+                                <label for="source_file">Fichier "source" :</label>
+                                <p><input type="file" id="source_file" name="source_file" accept=".csv,.xlsx"></p>
+
+                                <label for="open_file">Fichier "open" :</label>
+                                <p><input type="file" id="open_file" name="open_file" accept=".csv,.xlsx"></p>
+
+                                <p><input type="submit" value="Soumettre"></p>
+                                <input type="hidden" name="btn_id" value="soumettre_fichier">
+                            </form>
+
+
+                    <div id="message">
+                        {% with messages = get_flashed_messages() %}
+                            {% if messages %}
+                                <ul class=flashes>
+                                    {% for message in messages %}
+                                        <em>{{ message }}</em>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        {% endwith %}
+                    </div>
+
+                    </div>
+                </fieldset>
+
+                <div class="container", id="files">
+                    {% if uploaded_files == [] %}
+                        Aucun fichier téléversé
+                    {% else %}
+                        Les fichiers téléversés sont les suivants :
+                        <ul>
+                            {% for file in uploaded_files %}
+                                <li>{{ file.name }} </li>
+                            {% endfor %}
+                        </ul>
+                        <div id="purge">
+                            <form method="POST">
+                                <input type="submit" value="Purger les fichiers">
+                                <input type="hidden" name="btn_id" value="purger">
+                            </form>
+
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div id="bouton suivant">
+                    {% if validated_files %}
+                        <form method="POST" action="">
+                            <p>L'analyse dure un certain temps, c'est normal. Ne pas recharger la page</p>
+                            <p><input type="submit" value="Analyser"></p>
+                            <input type="hidden" name="btn_id" value="analyser">
+                        </form>
+                    {% endif %}
+                </div>
+
+                {% if file_ready == 1 %}
+                    <div id="telecharger">
+
+                            Fichier prêt !
+                            <form method="POST" action="">
+                                <p><input type="submit" value="Télécharger"></p>
+                                <input type="hidden" name="btn_id" value="telecharger">
+                            </form>
+                    </div>
+
+                    <div id="terminer">
+                            <form method="POST" action="">
+                                <p><input type="submit" value="Terminer"></p>
+                                <input type="hidden" name="btn_id" value="terminer">
+                            </form>
+                </div>
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </body>
+</html>
