@@ -146,7 +146,7 @@ def node_map():
                                    file_ready=file_nm_ready)
 
         elif request.form['btn_id'] == 'telecharger':
-            return redirect(url_for('download', app_name=app_name, filename=app.config['CURRENT_OUTPUT_FILE']))
+            return redirect(url_for('download', app_name=app_name, file=app.config['CURRENT_OUTPUT_FILE']))
 
     return render_template('node_map.html', uploaded_files=uploaded_files, validated_files=validated_nm_files,
                            file_ready=file_nm_ready)
